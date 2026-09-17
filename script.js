@@ -1,10 +1,12 @@
-// UPDATE THIS ARRAY: Put the exact file names of the images inside your "Images" folder here
-const images = [
-  "Images/screenshot1.png",
-  "Images/photo2.jpg",
-  "Images/image3.jpg",
-  "Images/pic4.png",
-];
+// --- UPDATE THESE TWO VARIABLES ---
+const githubUsername = "amit03210";
+const repoName = "Random-Image-Slideshow";
+const folderName = "Images"; // Make sure this exactly matches your folder name
+
+// The GitHub API URL to read the folder contents
+const apiUrl = `https://api.github.com/repos/${githubUsername}/${repoName}/contents/${folderName}`;
+
+let images = [];
 
 const imgElement = document.getElementById("slideshow-img");
 const prevBtn = document.getElementById("prevBtn");
@@ -12,12 +14,34 @@ const playPauseBtn = document.getElementById("playPauseBtn");
 const nextBtn = document.getElementById("nextBtn");
 
 let currentIndex = -1;
-let history = []; // Keeps track of seen images so 'Prev' works during random playback
+let history = [];
 let timer;
 let isPlaying = true;
 const intervalTime = 10000; // 10 seconds
 
-// Function to pick a random image different from the current one
+// 1. Automatically fetch the image list from the GitHub API
+fetch(apiUrl)
+  .then((response) => {
+    if (!response.ok)
+      throw new Error("Could not fetch folder. Check username and repo name.");
+    return response.json();
+  })
+  .then((data) => {
+    // Filter out non-image files and get the raw download URLs
+    images = data
+      .filter((file) => file.name.match(/\.(jpe?g|png|gif|webp)$/i))
+      .map((file) => file.download_url); // Use GitHub's raw image link
+
+    if (images.length > 0) {
+      nextImage();
+      startSlideshow();
+    } else {
+      console.error("No images found in the 'Images' folder on GitHub.");
+    }
+  })
+  .catch((error) => console.error("Error loading images:", error));
+
+// 2. Logic to pick a random image
 function getRandomIndex() {
   if (images.length <= 1) return 0;
   let newIndex;
@@ -27,59 +51,51 @@ function getRandomIndex() {
   return newIndex;
 }
 
-// Function to handle the dissolve transition and update the image
+// 3. Handle the dissolve transition
 function updateImage(index) {
-  // Fade out
   imgElement.style.opacity = 0;
 
-  // Wait for the CSS fade out transition to complete before changing the source
   setTimeout(() => {
     imgElement.src = images[index];
     currentIndex = index;
 
-    // Wait a tiny bit for the image to load, then fade back in
     imgElement.onload = () => {
       imgElement.style.opacity = 1;
     };
-  }, 1000); // Matches the 1s transition in CSS
+  }, 1000);
 }
 
-// Advance to the next random image
 function nextImage() {
   if (currentIndex !== -1) {
-    history.push(currentIndex); // Save current to history before changing
+    history.push(currentIndex);
   }
   const nextIdx = getRandomIndex();
   updateImage(nextIdx);
 }
 
-// Go back to the previously viewed image
 function prevImage() {
   if (history.length > 0) {
-    const prevIdx = history.pop(); // Get the last seen image
+    const prevIdx = history.pop();
     updateImage(prevIdx);
   } else {
-    // If no history, just pick a random one
     nextImage();
   }
 }
 
-// Start the automatic slideshow timer
 function startSlideshow() {
   timer = setInterval(nextImage, intervalTime);
 }
 
-// Stop the automatic slideshow timer
 function stopSlideshow() {
   clearInterval(timer);
 }
 
-// Event Listeners for the buttons
+// 4. Button Event Listeners
 nextBtn.addEventListener("click", () => {
   nextImage();
   if (isPlaying) {
     stopSlideshow();
-    startSlideshow(); // Reset timer so it doesn't change immediately after a click
+    startSlideshow();
   }
 });
 
@@ -87,7 +103,7 @@ prevBtn.addEventListener("click", () => {
   prevImage();
   if (isPlaying) {
     stopSlideshow();
-    startSlideshow(); // Reset timer
+    startSlideshow();
   }
 });
 
@@ -97,19 +113,9 @@ playPauseBtn.addEventListener("click", () => {
     playPauseBtn.innerText = "Play";
     isPlaying = false;
   } else {
-    nextImage(); // Immediately show the next one when resuming
+    nextImage();
     startSlideshow();
     playPauseBtn.innerText = "Pause";
     isPlaying = true;
   }
 });
-
-// Initialize the very first image when the page loads
-if (images.length > 0) {
-  nextImage();
-  startSlideshow();
-} else {
-  console.error(
-    "Please add image file paths to the 'images' array in script.js",
-  );
-}
