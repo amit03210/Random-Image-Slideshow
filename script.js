@@ -17,7 +17,7 @@ let currentIndex = -1;
 let history = [];
 let timer;
 let isPlaying = true;
-const intervalTime = 10000; // 10 seconds
+const intervalTime = 15000; // 15 seconds
 
 // 1. Automatically fetch the image list from the GitHub API
 fetch(apiUrl)
